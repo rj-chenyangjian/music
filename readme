@@ -1,1 +1,92 @@
-readme
+内网听网易云音乐（Codespace 方案）
+内网屏蔽了网易云 CDN，但放行了 GitHub。
+利用 GitHub Codespace 作跳板，把音频/封面请求通过 Codespace 中转，实现正常播放。
+架构
+浏览器
+  ↓ 访问
+8080  YesPlayMusic 前端（已打补丁，CDN URL 改写为本机中转）
+  ↓ API 请求
+3000  @neteaseapireborn/api  网易云 API 代理
+  ↓ 音频/图片请求
+3001  cdn-proxy.js  CDN 中转服务（转发到 music.126.net 等）
+  ↓ 经 Codespace 公网出口
+网易云服务器
+首次配置（已完成，跳过）
+1. 创建 GitHub 仓库并开 Codespace
+2. 将 cdn-proxy.js 和 start.sh 上传到 /workspaces/music/
+3. 执行 bash /workspaces/music/start.sh 完成初始化
+每次重启 Codespace 后如何使用
+Codespace 停机或重启后，三个服务都会停掉，需要重新启动。
+第一步：打开 Codespace
+用 VS Code 打开 Codespace，或在浏览器访问：
+https://github.com/codespaces
+
+找到你的 Codespace，点击 Resume / Open。
+第二步：在终端运行启动脚本
+打开 VS Code 终端（Ctrl+` 或菜单 Terminal → New Terminal），执行：
+bash /workspaces/music/start.sh
+
+等待约 30 秒，看到 :8080 OK 表示启动成功。
+第三步：转发端口并打开播放器
+VS Code 左下角点击"端口"（Ports）面板，确认以下端口已转发：
+端口
+服务
+3000
+NetEase API
+3001
+CDN 代理
+8080
+播放器页面
+在浏览器打开 8080 对应的 github.dev 地址（Ports 面板里点击地球图标），或直接访问：
+http://localhost:8080
+第四步：扫码登录
+首次或 token 失效时需要重新登录：
+
+1. 点击右上角头像 → 登录
+2. 选择"扫描二维码登录"
+3. 打开手机网易云 App → 右上角扫一扫
+日志查看（排查问题用）
+tail -f /tmp/player.log      # 前端日志
+tail -f /tmp/api.log         # API 日志
+tail -f /tmp/cdn-proxy.log   # CDN 代理日志
+常见问题
+封面加载慢 / 显示不出来
+正常，CDN 图片需要经过 Codespace 中转，速度取决于线路，稍等即可。
+
+音乐不能播放
+打开浏览器 F12 → Console，如果看到 localhost:3001 的报错，检查 CDN 代理是否在运行：
+ps aux | grep cdn-proxy
+不在运行则手动启动：
+node /workspaces/music/cdn-proxy.js &
+
+API 连不上 / 登录没反应
+检查 API 服务：
+ps aux | grep NeteaseCloudMusicApi
+curl http://localhost:3000
+不在运行则手动启动：
+source ~/.nvm/nvm.sh && nvm use 16
+cd /tmp/ym/node_modules/@neteaseapireborn/api && node app.js &
+
+端口已占用（EADDRINUSE）
+pkill -f cdn-proxy.js
+pkill -f NeteaseCloudMusicApi
+pkill -f vue-cli-service
+bash /workspaces/music/start.sh
+
+Codespace 链接出现 SSL 错误
+刷新页面重试，或等几秒再试，是 github.dev 的偶发问题。
+注意事项
+Codespace 免费额度每月 120 小时（个人账户），不用时记得 Stop Codespace，避免白白消耗。
+不要把 Codespace 的端口转发地址（.github.dev 链接）分享给别人，会暴露你的账号请求。
+本方案只影响 Codespace 容器内的流量，不影响内网其他机器。READMEEOF
+echo "README.md 写入完成"
+写完后如果你想推到 GitHub 仓库备份，在 Codespace 终端再执行：
+```bash
+cd /workspaces/music
+git init
+git add cdn-proxy.js start.sh README.md
+git commit -m "add music proxy setup"
+git remote add origin https://github.com/你的用户名/你的仓库名.git
+git push -u origin main
+
+把"你的用户名/你的仓库名"换成你实际的仓库地址。
