@@ -1,3 +1,36 @@
+重启后恢复不再如下：
+
+1、打开链接：https://github.com/rj-chenyangjian/music
+2、按下逗号选择Resume codespace--》reimagined guide--》选择更多vscode打开
+3、在vscode页面的终端输入：
+pkill -f "cdn-proxy.js" 2>/dev/null; pkill -f "NeteaseCloudMusicApi" 2>/dev/null; pkill -f "vue-cli-service" 2>/dev/null; sleep 1
+nohup node /workspaces/music/cdn-proxy.js > /tmp/cdn-proxy.log 2>&1 &
+nohup bash -c "source /usr/local/share/nvm/nvm.sh && nvm use 16 && cd /workspaces/ym/node_modules/@neteaseapireborn/api && node app.js" > /tmp/api.log 2>&1 &
+sleep 2
+nohup bash -c "source /usr/local/share/nvm/nvm.sh && nvm use 16 && cd /workspaces/ym && yarn serve" > /tmp/player.log 2>&1 &
+sleep 5
+
+ps aux | grep -E "(cdn-proxy|NeteaseCloudMusicApi|vue-cli)" | grep -v grep
+===出现3个进程接口
+rj-chenyangjian ➜ /workspaces/music (main) $ ps aux | grep -E "(cdn-proxy|NeteaseCloudMusicApi|vue-cli)" | grep -v grep
+codespa+   19504  0.3  0.6 1482496 50620 pts/0   Sl   01:30   0:00 node /workspaces/music/cdn-proxy.js
+codespa+   20453  0.0  0.0   2812  1936 pts/0    S    01:30   0:00 /bin/sh -c vue-cli-service serve
+codespa+   20454  111  4.4 1170984 359932 pts/0  Sl   01:30   0:11 /usr/local/share/nvm/versions/node/v16.20.2/bin/node /workspaces/ym/node_modules/.bin/vue-cli-service serve
+@rj-chenyangjian ➜ /workspaces/music (main) $ 
+
+
+4、然后浏览器打开 http://localhost:8080/ 点击登入即可
+注意：vscode不要关闭，过程需要用端口映射
+
+
+
+
+
+
+下面是环境初始化流程
+
+
+
 内网听网易云音乐（Codespace 方案）
 内网屏蔽了网易云 CDN，但放行了 GitHub。
 利用 GitHub Codespace 作跳板，把音频/封面请求通过 Codespace 中转，实现正常播放。
